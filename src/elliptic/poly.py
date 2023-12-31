@@ -10,18 +10,18 @@ This module implements univariate polynomials over modular integers.
 
 Formally, a univariate polynomial is a sum of terms, each comprised of a coefficient and a positive integer
 power of a variable. Coefficients are scalars and variables can be any vector over the scalar field. For
-example, `X**3 + 2*X + 2` is a polynomial of degree three and its coefficients are `[2, 2, 0, 1]` in little
-endian (lowest exponent term first).
+example, *X*<sup>3</sup> + 2 * *X* + 2 is a polynomial of degree three and its coefficients are 2, 2, 0 and 1
+in little endian (lowest exponent term first).
 
 Polynomials form an infinite-dimensional vector space over the scalar field. They can be added or substracted
 and they can be multiplied by a scalar. They can also be multiplied together using the distributivity rule.
 
 The `PolyModular` class implements univariate polynomials over the field of modular integers. The class of
-polynomials with coefficients modulo `p` can be constructed as `PolyModular[p]` if `p` is a prime number.
+polynomials with coefficients modulo *p* can be constructed as `PolyModular[p]` if *p* is a prime number.
 Polynomials are instantiated from a list of coefficients in little endian.
 
 >>> P = PolyModular[3]
->>> print(P([2, 2, 0, 1]))
+>>> print(P([P.M(2), P.M(2), P.M(0), P.M(1)]))
 X**3 + 2*X + 2
 
 ## Parsing
@@ -69,7 +69,7 @@ X**4 + X**3
 
 `PolyModular` overloads the matrix multiplication operator `@` to implement scalar multiplication:
 
->>> s = Modular[3](2)
+>>> s = P.M(2)
 >>> print(s @ P.from_string("X**2 + 2"))
 2*X**2 + 1
 
@@ -84,10 +84,16 @@ TypeError: unsupported operand type(s) for *: 'PolyModular' and 'Modular'
 
 ## Ordering
 
-Modular polynomials implement lexicographical ordering in the sense of Parker: two polynomials of degree
-`n` are such that `p < q` when there is an index `k` such that:
-- `p.coeffs[i] == q.coeffs[i]` for `k < i < n + 1`
-- `(-1) ** (n - k) * p.coeffs[k] > (-1) ** (n - k) * q.coeffs[k]`
+Modular polynomials implement lexicographical ordering in the sense of Parker. Consider two polynomials of
+degree *n*:
+
+> *p* = *p*<sub>0</sub> + *p*<sub>1</sub> * *X* + ... + *p*<sub>n</sub> * *X*<sup>*n*</sup>
+
+> *q* = *q*<sub>0</sub> + *q*<sub>1</sub> * *X* + ... + *q*<sub>n</sub> * *X*<sup>*n*</sup>
+
+They are ordered *p* < *q* when there is an integer *k* such that:
+- *p*<sub>*i*</sub> = *q*<sub>*i*</sub> for *k* < *i* < *n* + 1
+- (-1)<sup>*n*-*k*</sup> * *p*<sub>*k*</sub> > (-1)<sup>*n*-*k*</sup> * *q*<sub>*k*</sub>
 
 This is a counter-intuitive ordering wherein the comparison reverses the sign of every other coefficient:
 
@@ -106,10 +112,9 @@ This ordering implies a norm based on the lexicographical distance to zero:
 Polynomials have a unique composition of irreducible factors, much like integers have prime factors. For
 modular polynomials, factorization traditionally takes three stages.
 
-First, the polynomial is split into square-free factors by the `PolyModular.sff()` method. In turn, the
-`PolyModular.ddf()` method decomposes a square-free polynomial into products of irreducible factors of equal
-degree. Finally, each equal-degree product can call the `PolyModular.edf()` method to separate the irreducible
-factors.
+The polynomial is first split into square-free factors by the `PolyModular.sff()` method. Each of those is
+decomposed by `PolyModular.ddf()` into products of irreducible factors of equal degree. Each equal-degree
+product can then be split into irreducible factors by the `PolyModular.edf()` method.
 
 The full factorization process is implemented by the `PolyModular.factors()` method:
 
@@ -349,7 +354,7 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
         """
         The degree of the polynomial.
 
-        Its value is one less than `dim` unless the polynomial is zero, in which case the degree is `-1` by
+        Its value is one less than `dim` unless the polynomial is zero, in which case the degree is -1 by
         convention.
         """
         if self == 0:
@@ -404,7 +409,7 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
 
     def of(self, value: X) -> X:
         """
-        Return the result of applying the polynomial to `value`.
+        Return the result of applying the polynomial to *value*.
 
         The element passed as value must implement `__rmul__()` for `elliptic.mod.Modular` objects.
         """
@@ -415,9 +420,9 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
 
     def gcd(self, *others: Self) -> Self:
         """
-        Return the greatest common divisor of the polynomial and `other`.
+        Return the greatest common divisor of the polynomial and *others*.
 
-        The result is not normalized and a non-monic polynomial may be returned.
+        The result is not normalized and not necessarily monic.
         """
         if not others:
             return self
@@ -468,8 +473,8 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
         Return the distinct-degree factors of the polynomial with their irreducible degree.
 
         The polynomial must be monic and square-free. The returned dictionary `{d: f, ...}` is a
-        factorization of the polynomial such that each factor `f` is a product of monic, irreducible
-        polynomials of equal degree `d`.
+        factorization of the polynomial such that each factor *f* is a product of monic, irreducible
+        polynomials of equal degree *d*.
         """
 
         # Gauss' algorithm

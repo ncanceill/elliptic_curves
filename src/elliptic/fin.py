@@ -11,30 +11,38 @@ This module implements extended finite fields as defined by Galois.
 Modular integer fields are limited to a prime number of elements. By using such fields to construct
 polynomials, it is possible to define a field structure of higher order.
 
-Formally, a field can only be finite if it has a number `p ** n` of elements, for any prime number `p` and
-any strictly positive integer `n`. When `n` is 1, the field is represented by modular integers. When `n` is
-at least 2, the field can be defined as a Galois extension over the field of modular integers.
+Formally, any finite field contains *p*<sup>*n*</sup> elements, for some prime number *p* and some integer
+*n* > 0. When *n* = 1, the field is represented by modular integers. When *n* > 1, the field can be defined
+as a Galois extension over the field of modular integers.
+
+Galois arithmetic uses the proper divisors of the degree *n*. These are the integers *m* such that *n*/*m* is
+a prime number. This module provides a basic `factors()` function which is used to identify proper divisors.
 
 ## Polynomial representation
 
 Galois fields can be constructed as polynomials with modular integer coefficients. This conveniently provides
 the additive group structure. Multiplication can be defined by using regular polynomial multiplication: the
-product of two elements from Galois field of degree `n` is the remainder after dividing the result by a
-monic, irreducible polynomial of degree `n`.
+product of two elements from Galois field of degree *n* is the remainder after dividing the result by a
+monic, irreducible polynomial of degree *n*.
 
 The `Galois` class implements a finite field whose elements are univariate modular polynomials. The field
-`Galois[p, n]` is represented by all polynomials of degree `n - 1` or lower with integer coefficients modulo
-`p`. It has `p ** n` elements.
+`Galois[p, n]` is represented by all polynomials of degree *n*-1 or lower with integer coefficients modulo
+*p*. It contains *p*<sup>*n*</sup> elements.
 
 ## Multiplicative group
 
 A convention is required to choose the polynomial which defines multiplication. This requires an ordering:
 the alternating lexicographical ordering defined by Parker and detailed in `elliptic.poly`.
 
-For a field `Galois[p, n]` the Conway polynomial is the smallest monic, irreducible, primitive polynomial of
-degree `n` compatible with all Conway polynomials for all proper divisors of `n`.
+The Conway polynomial of a field `Galois[p, n]` is the smallest monic, irreducible, primitive polynomial of
+degree *n*, with coefficients modulo *p*, compatible with all Conway polynomials for proper divisors of *n*.
 
-A polynomial `c_n` is compatible with the Conway polynomial `c_m` for a proper divisor `m` of `n` when:
+For a prime modulus *p*, a modular polynomial *C*<sub>*n*</sub> is compatible with the Conway polynomial
+*C*<sub>*m*</sub> (whose degree *m* is a proper divisor of *n*) when
+*C*<sub>*m*</sub>(*X*<sup>(*p*<sup>*n*</sup>-1)/(*p*<sup>*m*</sup>-1)</sup>) is divisible by
+*C*<sub>*n*</sub>(X).
+
+Equivalently:
 ```python
 c_m.of(
     c_m.one() << ((c_n.modulus**c_n.deg - 1) // (c_m.modulus**c_m.deg - 1))
@@ -42,7 +50,18 @@ c_m.of(
 ```
 
 The class method `Galois.conway()` returns the Conway polynomial of the Galois field. The multiplication of
-two Galois element is the remainder in the division of their polynomial product by the Conway polynomial.
+two Galois element is based on the regular product of their polynomial representations. If the degree of the
+product is lower than the field degree then no more steps are required. Otherwise, the product is divided by
+the Conway polynomial and the remainder of the division is used.
+
+>>> P = PolyModular[3]
+>>> G = Galois[3,2]
+>>> print(P.from_string("X") * P.from_string("X+1"))
+X**2 + X
+>>> print(G.from_string("X") * G.from_string("X+1"))
+2*X + 1
+>>> print(P.from_string("X**2 + X") % G.conway())
+2*X + 1
 """
 
 from collections.abc import Iterator
@@ -56,9 +75,9 @@ from typing import Any, ClassVar, Final, Self
 
 def factors(n: int, /) -> dict[int, int]:
     """
-    Return the prime factors of `n` with their exponents.
+    Return the prime factors of *n* with their exponents.
 
-    The returned dictionary is indexed by the prime factors of `n` and its values are the corresponding
+    The returned dictionary is indexed by the prime factors of *n* and its values are the corresponding
     exponents.
 
     >>> factors(0), factors(1)
@@ -70,7 +89,7 @@ def factors(n: int, /) -> dict[int, int]:
     >>> factors(1280)
     {2: 8, 5: 1}
 
-    Implemented by trial division which has `O(sqrt(n))` (exponential) complexity.
+    Implemented by trial division which has O(sqrt(*n*)) complexity (exponential).
     """
     if not isinstance(n, int):
         raise TypeError(f"unsupported for factorization: {type(n).__name__}")
@@ -87,18 +106,18 @@ def factors(n: int, /) -> dict[int, int]:
 
 class MetaGalois(MetaPoly):
     """
-    The metaclass of Galois fields, allowing for creation of `Galois[modulus, degreee]` subclasses.
+    The metaclass of Galois fields, allowing for creation of `Galois[modulus, degree]` subclasses.
 
     >>> isinstance(Galois[2, 3], MetaGalois)
     True
     """
 
     attr_names: ClassVar[tuple[str, ...]] = ("modulus", "degree")
-    """The name of the attributes passed as subscript: `"modulus"` and `"degree"`."""
+    """The name of the attributes passed as subscript: "modulus" and "degree"."""
 
     def attrs(cls, key: Any) -> tuple[Any, ...]:
         """
-        Return the `key` subscript if it is a tuple of a prime number and a positive integer, raise
+        Return the *key* subscript if it is a tuple of a prime number and a positive integer, raise
         `TypeError` or `ValueError` otherwise.
         """
         if not isinstance(key, tuple):
@@ -127,8 +146,8 @@ class Galois(PolyModular, BaseGalois, FiniteField, metaclass=MetaGalois):
     """
     Galois field elements are constructed from a modulus, a degree and a list of modular coefficients.
 
-    Calling `Galois[m, d]` returns a returns a subclass with the `modulus` and `degree` class variables set.
-    Such a subclass takes a single argument `coeffs` to construct a Galois element.
+    Calling `Galois[m, d]` returns a subclass with the `modulus` and `degree` class variables set. Such a
+    subclass takes a single argument `coeffs` to construct a Galois element.
 
     When the subclass is created, `elliptic.mod.isprime()` is called on the modulus: if it returns `False`,
     then `ValueError` is raised.
@@ -196,7 +215,7 @@ class Galois(PolyModular, BaseGalois, FiniteField, metaclass=MetaGalois):
     @classmethod
     def is_primitive(cls, poly: PolyModular) -> bool:
         """
-        Return `True` if `poly` is a primitive polynomial of the Galois field, `False` otherwise.
+        Return `True` if *poly* is a primitive polynomial of the Galois field, `False` otherwise.
 
         A primitive polynomial is the minimal polynomial of a primitive element of the field.
         """
@@ -316,8 +335,8 @@ class Galois(PolyModular, BaseGalois, FiniteField, metaclass=MetaGalois):
         if self == 0:
             return self
 
-        # Easy mode
-        if self.modulus == 2:  # if everything is a square
+        # Easy mode: everything is a square
+        if self.modulus == 2:
             return self ** (self.order() // 2)
 
         # Hard mode: Adleman-Manders-Miller algorithm
@@ -329,7 +348,7 @@ class Galois(PolyModular, BaseGalois, FiniteField, metaclass=MetaGalois):
             seed = self.random(self.degree)  # Go to Las Vegas
         assert seed != 1, "A quadratic nonresidue must exist"
         evenlog, odd = 0, self.order() - 1
-        while odd % 2 != 1:  # Split (order - 1) into the odd part and the base-two logarithm of the even part
+        while odd % 2 != 1:  # Split order-1 into the odd part and the logarithm (base 2) of the even part
             odd //= 2
             evenlog += 1
         b = self**odd

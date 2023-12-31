@@ -9,24 +9,29 @@ This module defines modular integer fields.
 ## Introduction
 
 Conceptually, a modular integer is an equivalence class of the congruence relation over all integers. Two
-integers `x` and `y` are congruent modulo `n` when there is an integer `k` such that `x == k * n + y`.
-Modular integers have a unique multiplicative inverse if and only if their modulus `n` is a prime number, in
-which case they form a finite field of order `n`.
+integers *x* and *y* are congruent modulo *n* when there is an integer *k* such that:
 
-Modular integers are implemented by the `Modular` class. The field of integers modulo `p` can be constructed
-as `Modular[p]` if `p` is a prime number. Members of the field are instantiated from an integer value.
+> *x* = *k* * *n* + *y*
+
+Modular integers have a unique multiplicative inverse if and only if their modulus *n* is a prime number, in
+which case they form a finite field of order *n*.
+
+Modular integers are implemented by the `Modular` class. The field of integers modulo *p* can be constructed
+as `Modular[p]` if *p* is a prime number. Members of the field are instantiated from an integer value:
+
+>>> M = Modular[5]  # The field of integers modulo 5
+>>> M(3) == M(8) == M(-2)
+True
 
 ## Structure
 
-The integers modulo a prime number `p` form a field, so `Modular` implements the `elliptic.abc.FiniteField`
-interface. Since they behave as regular integers, `Modular` also subclasses `numbers.Integral`. They can be
-defined from any integer value.
+The integers modulo a prime number *p* form a field, so `Modular` implements the `elliptic.abc.FiniteField`
+interface. Since they behave as regular integers, `Modular` also subclasses `numbers.Integral`.
 
->>> M: type[Modular] = Modular[5]  # The field of integers modulo 5
 >>> print(*(cls.__name__ for cls in M.__bases__))
 Modular BaseModular FiniteField Integral
 
-Addition and substraction modulo `p` define the `+` and `-` operations:
+Addition and substraction modulo *p* define the operations `+` and `-`:
 
 >>> print(M(1) + M(2))
 3
@@ -37,7 +42,7 @@ Addition and substraction modulo `p` define the `+` and `-` operations:
 >>> print(M(-1))
 4
 
-Multiplication is also defined modulo `p` which, being a prime number, allows for computing the inverse of a
+Multiplication is also defined modulo *p* which, being a prime number, allows for computing the inverse of a
 field element using Fermat's little theorem:
 
 >>> print(M(2) * M(4))
@@ -94,14 +99,14 @@ from typing import Any, ClassVar, Final, Self, SupportsIndex
 
 def isprime(n: int, /) -> bool:
     """
-    Return `True` if `n` is prime, `False` otherwise.
+    Return `True` if *n* is prime, `False` otherwise.
 
     >>> isprime(-2), isprime(-1), isprime(0), isprime(1)
     (False, False, False, False)
     >>> isprime(2), isprime(3), isprime(5), isprime(7)
     (True, True, True, True)
 
-    Implemented by trial division which has `O(sqrt(n))` (exponential) complexity.
+    Implemented by trial division which has O(sqrt(*n*)) complexity (exponential).
     """
     if n < 2:
         return False
@@ -115,11 +120,11 @@ def isprime(n: int, /) -> bool:
 
 def msqrt(n: int, mod: int, /) -> int | None:
     """
-    Return the square root of `n` modulo `mod`.
+    Return the square root of *n* modulo *mod*.
 
-    That is a positive integer `r` such that `r < mod` and `r ** 2 % mod == n`, or `None` if no such integer
-    exists. Note that if `r` exists, then `-r` is also a square root of `n` modulo `mod`. The modulus `mod`
-    must be prime, otherwise the behavior is undefined.
+    That is a positive integer *r* such that *r* < *mod* and *r*<sup>2</sup> % *mod* = *n*, or `None` if no
+    such integer exists. Note that if *r* exists then -*r* is also a square root of *n* modulo *mod*. If
+    *mod* is not a prime number then the behavior is undefined.
 
     >>> msqrt(2, 3), msqrt(2, 5)
     (None, None)
@@ -132,15 +137,15 @@ def msqrt(n: int, mod: int, /) -> int | None:
     >>> 8**2 % 31, (-8 % 31)**2 % 31
     (2, 2)
 
-    Implemented with the Tonelli-Shanks algorithm, which has `O(log(n)**2)` (polynomial) complexity.
+    Implemented with the Tonelli-Shanks algorithm, which has O(log(*n*)<sup>2</sup>) complexity (polynomial).
     """
 
     # Trivial mode
-    if n % mod in (0, 1):
-        return n % mod
+    if (bit := n % mod) in (0, 1):
+        return bit
     assert mod != 2, f"{mod} must be odd"
 
-    # Easy mode: mod + 1 is divisible by 4
+    # Easy mode: mod+1 is divisible by 4
     if mod % 4 == 3:
         # Looking for a quadratic residue:
         #       pow(n, (mod - 1) // 2, mod) == 1              # Euler's criterion
@@ -151,7 +156,7 @@ def msqrt(n: int, mod: int, /) -> int | None:
 
     # Hard mode: Tonelli–Shanks algorithm
     evenlog, odd = 0, mod - 1
-    while odd % 2 != 1:  # Split (mod - 1) into the odd part and the base-two logarithm of the even part
+    while odd % 2 != 1:  # Split mod-1 into the odd part and the logarithm (base 2) of the even part
         odd //= 2
         evenlog += 1
     z = 0  # Find a quadratic nonresidue
@@ -160,35 +165,35 @@ def msqrt(n: int, mod: int, /) -> int | None:
             break
     assert z and z != mod, "A quadratic nonresidue must exist"
     # Notice that:
-    #          odd * 2**evenlog == mod - 1                            # Rebuild (mod-1) from parts
+    #          odd * 2**evenlog == mod - 1                            # Rebuild mod-1 from parts
     #          odd * 2**(evenlog-1) == (mod-1) // 2                   # Divide by 2
     #   pow(z, odd * 2**(evenlog-1), mod) == pow(z, (mod-1)//2, mod)  # Exponentiate z
     #   pow(z, odd * 2**(evenlog-1), mod) == -1 % mod                 # Euler's criterion
-    #   pow(z, odd, mod) is a 2**(evenlog-1)-th root of -1
+    #   pow(z, odd, mod) is a 2**(evenlog-1)'th root of -1
     c = pow(z, odd, mod)
     # Similarly:
-    #   pow(n, odd, mod) is only a 2**(evenlog-1)-th root of 1 if a square root exists
+    #   pow(n, odd, mod) is only a 2**(evenlog-1)'th root of 1 if a square root exists
     k = pow(n, odd, mod)
-    max_ = evenlog  # if k is a 2**(max_-1)-th root of 1 then no square root exists
+    max_ = evenlog
     root = pow(n, (odd + 1) // 2, mod)  # Try the square root of x * k
     while k != 1:
         # if k != 1 then find another square root of x * k where k is:
-        # either equal to 1 or a 2**(evenlog-2)-th root of 1
+        # either equal to 1 or a 2**(evenlog-2)'th root of 1
         assert k, f"{k} must not be zero"
-        i = 0  # Find the smallest i such that k is a 2**i-th root of 1
+        i = 0  # Find the smallest i such that k is a 2**i'th root of 1
         for i in range(1, max_ + 1):
             if pow(k, 2**i, mod) == 1:
                 break
         assert i, f"{max_} must not be zero"
-        if i == max_:  # if no square root exists
+        if i == max_:  # if k is not a 2**(max_-1)'th root of 1 then no square root exists
             return None
         b = pow(c, 2 ** (max_ - i - 1), mod)  # Define a clever factor b
         # Notice that:
-        #   pow(b, 2, mod) is a 2**(i-1)-th root of -1
+        #   pow(b, 2, mod) is a 2**(i-1)'th root of -1
         c = pow(b, 2, mod)
         root = root * b % mod  # Build a new root candidate from b
         k = k * c % mod  # Update k accordingly
-        max_ = i  # k is only a 2**(i-1)-th root of 1 if a square root exists
+        max_ = i  # k is only a 2**(i-1)'th root of 1 if a square root exists
     return root
 
 
@@ -203,11 +208,11 @@ class MetaModular(MetaSubscript):
     """
 
     attr_names: ClassVar[tuple[str, ...]] = ("modulus",)
-    """The name of the attribute passed as subscript: `"modulus"`."""
+    """The name of the attribute passed as subscript: "modulus"."""
 
     def attrs(cls, key: Any) -> tuple[Any, ...]:
         """
-        Return the `key` subscript if it is a prime number, raise `TypeError` or `ValueError` otherwise.
+        Return the *key* subscript if it is a prime number, raise `TypeError` or `ValueError` otherwise.
         """
         if not isinstance(key, int):
             raise TypeError(f"invalid index type: {type(key).__name__}")
@@ -223,7 +228,7 @@ class MetaModularP(MetaModular):
 
     def attrs(cls, key: Any) -> tuple[Any, ...]:
         """
-        Return the `key` subscript if it is an integer, raise `TypeError` otherwise.
+        Return the *key* subscript if it is an integer, raise `TypeError` otherwise.
         """
         if not isinstance(key, int):
             raise TypeError(f"invalid index type: {type(key).__name__}")

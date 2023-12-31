@@ -25,7 +25,7 @@ difficult to compute the integer `n`. That problem is called the discrete logari
 A curve is constructed over a field:
 
 >>> from elliptic.mod import Modular
->>> M: type[Modular] = Modular[3]  # The finite field with three elements
+>>> M = Modular[3]  # The finite field with three elements
 >>> c = Curve[M](a=M(2), b=M(1))
 >>> print(c.infinity)
 (0, 1, 0)
@@ -35,7 +35,7 @@ take the square root if it exists.
 
 That works reasonably well for modular integers:
 
->>> M: type[Modular] = Modular[31]
+>>> M = Modular[31]
 >>> a, b = M(1), M(2)
 >>> c = Curve(a, b)
 >>> x = M(10)
@@ -75,24 +75,24 @@ True
 
 ## Interface
 
-As long as elements of a field are hashable, so are curves and points defined over it. All classes defined in
-this module are meant to be immutable.
+As long as the elements of a field are hashable, so are curves and points defined over it. All classes
+defined in this module are meant to be immutable.
 
 ### Unary and binary operations
 
 Consider two points `p1` and `p2` on an elliptic curve. The third-intersection `p1 @ p2` is the third point
 where the line joining `p1` and `p2` intersects with the curve.
 
->>> M: type[Modular] = Modular[5]
+>>> M = Modular[5]
 >>> c = Curve(a=M(1), b=M(2))
 >>> p = Point(M(1), M(2), curve=c)
 >>> print(p @ p)
 (4, 0)
 
->>> c.infinity @ (p @ p) == (c.infinity @ p) @ p  # The operation is not associative
-False
+>>> c.infinity @ (p @ p) != (c.infinity @ p) @ p  # The operation is not associative
+True
 
-The unary negation is implemented by taking the third-intersection with the point at infinity. The binary
+Unary negation is implemented by taking the third-intersection with the point at infinity. The binary
 addition of two points `p1` and `p2` is implemented as `-(p1 @ p2)`.
 
 >>> print(+p)
@@ -110,7 +110,7 @@ True
 
 Since points can be added together, it makes sense that they can be multiplied by an integer. Multiplying by
 zero returns the point at infinity. For a positive integer `n` and a point `p`, the operation can be defined
-as `(n + 1)*p = n*p + p` by recursion. It is trivially extended by `-n * p = p * -n` for negative integers.
+as `(n + 1)*p = n*p + p` by recursion. It is trivially extended by `-n * p = n * -p` for negative integers.
 
 >>> print(3 * p)
 (1, 3)
@@ -151,7 +151,7 @@ FF = TypeVar("FF", bound=FiniteField)
 @dataclass(frozen=True)
 class BasePoint(Generic[F]):
     """
-    Construct a point in the projective plane `Z=1` of a vector space over a field `F`.
+    Construct a point in the projective plane *Z*=1 of a vector space over a field `F`.
     """
 
     X: F
@@ -159,7 +159,7 @@ class BasePoint(Generic[F]):
     Y: F
     """The ordinate of the point."""
     Z: F = cast(F, None)
-    """The applicate of the point. Set to one if omitted."""
+    """The applicate of the point. Set to 1 if omitted."""
 
     def __post_init__(self) -> None:
         if self.Z is None:
@@ -266,7 +266,7 @@ class Curve(Generic[F]):
 
     def contains(self, point: BasePoint[F]) -> bool:
         """
-        Return `True` if the curve contains `point`, `False` otherwise.
+        Return `True` if the curve contains *point*, `False` otherwise.
         """
         if point.is_inf():
             return point.X == 0 and point.Y == 1
@@ -314,7 +314,7 @@ class Point(BasePoint[F]):
 
     def third(self, other: Self) -> Self:
         """
-        Return the third intersection point between the curve and the line joining the point with `other`.
+        Return the third point where the curve intersects the line joining the point and *other*.
 
         Intersections include multiplicity, so `self.third(self)` is the intersection with the tangent to
         the curve at the point.
@@ -399,9 +399,9 @@ class FiniteCurve(Curve[FF]):
 
     def bsgs(self, gen: Point[FF], p: Point[FF]) -> int | None:
         """
-        Return the discrete logarithm of `p` in base `gen` using the Baby Step Giant Step algorithm.
+        Return the discrete logarithm of *p* in base *gen* using the Baby Step Giant Step algorithm.
 
-        If `gen` is not a generator of the curve and never adds up to `p`, then `None` is returned.
+        If *gen* is not a generator of the curve and never adds up to *p*, then `None` is returned.
         """
 
         # Shanks' algorithm
@@ -414,12 +414,12 @@ class FiniteCurve(Curve[FF]):
                 return j
             guesses += [guess]
         step = -max_ * gen  # Define a giant step backwards
-        giant = p + step  # Look for (i, j) such that j * gen == self + -max_ * i * gen
+        guess = p + step  # Look for (i, j) such that j * gen == self + -max_ * i * gen
         for i in range(1, max_):
             try:
-                return guesses.index(giant) + i * max_
-            except ValueError:  # if giant not in guesses
-                giant += step
+                return guesses.index(guess) + i * max_
+            except ValueError:  # if guess not in guesses
+                guess += step
         return None
 
 

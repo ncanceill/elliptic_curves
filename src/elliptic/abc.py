@@ -10,6 +10,8 @@ This module provides abstract base classes for elliptic curves.
 
 Fields are specified by the `Field` interface. They act as scalars for the definition of elliptic curves.
 
+Field implementations may be parametrized. This can be achieved with the `MetaSubscript` abstract base class.
+
 Fields may also be used to define polynomials. Variables can be modeled by the `ProtoVar` interface.
 
 ## Numeric emulation
