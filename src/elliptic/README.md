@@ -187,4 +187,4 @@ The curve definitions are republished courtesy of the [National Institute of Sta
 
 ***
 
-Copyright © 2023 Nicolas Canceill
+Copyright © 2023-2024 Nicolas Canceill
