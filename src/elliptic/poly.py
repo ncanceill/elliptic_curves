@@ -472,13 +472,17 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
         """
         Return the distinct-degree factors of the polynomial with their irreducible degree.
 
-        The polynomial must be monic and square-free. The returned dictionary `{d: f, ...}` is a
+        The polynomial must be square-free. The returned dictionary `{d: f, ...}` is a
         factorization of the polynomial such that each factor *f* is a product of monic, irreducible
         polynomials of equal degree *d*.
         """
+        if self.leading and self.leading != 1:
+            r = {0: type(self)([self.leading])}
+            self = self.monic
+        else:
+            r = {}
 
         # Gauss' algorithm
-        r: dict[int, Self] = {}
         i = 1
         while self.deg > 2 * i - 1:  # Find all distinct-degree factors
             # Gauss' lemma: the product of all monic irreducible
@@ -499,6 +503,8 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
 
         The polynomial must be a monic, square-free product of equal-degree irreducible factors.
         """
+        if d == 0:
+            return [self]
         nfacts, zero = divmod(self.deg, d)
         assert zero == 0, "EDF requires an equal-degree product"
         assert nfacts > 1, "EDF requires at least two factors"
@@ -535,8 +541,8 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
         return {
             factor: exponent
             for squarefree, exponent in self.sff().items()
-            for deg, equaldeg in squarefree.monic.ddf().items()
-            for factor in (equaldeg.monic.edf(deg) if deg < equaldeg.deg else [equaldeg.monic])
+            for deg, equaldeg in squarefree.ddf().items()
+            for factor in (equaldeg.monic.edf(deg) if deg < equaldeg.deg else [equaldeg])
         }
 
     def sqrt(self) -> Self | None:
