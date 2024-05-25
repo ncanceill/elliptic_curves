@@ -448,7 +448,7 @@ class PolyModular(BasePoly, metaclass=MetaPoly):
         the corresponding exponents.
         """
         if self.deg < 1:
-            return {}
+            return {} if self == self.one() else {self: 1}
 
         # Yun's algorithm
         facts: dict[Self, int] = {}
