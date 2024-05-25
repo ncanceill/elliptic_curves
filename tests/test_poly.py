@@ -161,11 +161,15 @@ class TestPolyModular(TestCase):
 
     def test_factors(self) -> None:
         P: type[PolyModular] = PolyModular[3]
+        self.assertEqual(P.zero().factors(), {P.zero(): 1})
+        self.assertEqual(P.one().factors(), {})
         p1, p2 = P.from_string("X + 1"), P.from_string("X + 2")
         self.assertEqual(p1.factors(), {p1: 1})
+        self.assertEqual((p1**2).factors(), {p1: 2})
         p = p1 * p2
         self.assertEqual(p.factors(), {p1: 1, p2: 1})
         q = P.M(2)
+        self.assertEqual(P([q]).factors(), {P([q]): 1})
         self.assertEqual((q @ p1).factors(), {P([q]): 1, p1: 1})
         for m in [2, 3, 5, 7]:
             P = PolyModular[m]
