@@ -46,7 +46,7 @@ $(DOC_DIR):
 
 $(BUILD_VENV): $(SETUP_FILES)
 	$(python) -m venv $(BUILD_VENV)
-	$(BUILD_VENV)/bin/pip install -U pip
+	$(BUILD_VENV)/bin/pip install -U pip build
 	touch $(BUILD_VENV)
 
 $(VENV): $(SETUP_FILES)
